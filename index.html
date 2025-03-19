@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AOI Data Entry</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        body {
+            padding-top: 60px;
+        }
+        input[readonly], input:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+        .toast-container {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 1050;
+        }
+        .error-message {
+            color: red;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">FLx defect data update - AOI</a>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        <form id="dataEntryForm">
+            <div class="mb-3">
+                <label class="form-label">Operator ID (5 Digits)</label>
+                <input type="text" class="form-control" id="operatorId" pattern="\d{5}" maxlength="5" required>
+                <div class="text-danger" id="operatorError" style="display:none;">Enter your SAP number</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Panel Side</label><br>
+                <input type="radio" name="panelSide" value="TOP" required> Top
+                <input type="radio" name="panelSide" value="BOTTOM" required> Bottom
+                <div class="error-message" id="panelSideError">Please select a panel side</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Barcode</label>
+                <input type="text" class="form-control" id="barcode" required>
+                <div class="error-message" id="barcodeError">Please enter the barcode</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Date</label>
+                <input type="text" class="form-control" id="date" readonly>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Start Time</label>
+                <input type="text" class="form-control" id="startTime" readonly>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">End Time</label>
+                <input type="text" class="form-control" id="endTime" readonly>
+            </div>
+            <h5>Component Defects</h5>
+            <div id="defectList" class="mb-3"></div>
+            <button type="button" class="btn btn-secondary" onclick="addDefect()">Add Defect</button>
+            <button type="button" class="btn btn-primary" onclick="submitForm()">Submit</button>
+        </form>
+    </div>
+
+    <!-- Modal for displaying the entered data -->
+    <div class="modal fade" id="dataModal" tabindex="-1" aria-labelledby="dataModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dataModalLabel">Entered Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Operator ID:</strong> <span id="operatorIdModal"></span></p>
+                    <p><strong>Panel Side:</strong> <span id="panelSideModal"></span></p>
+                    <p><strong>Barcode:</strong> <span id="barcodeModal"></span></p>
+                    <p><strong>Date:</strong> <span id="dateModal"></span></p>
+                    <p><strong>Start Time:</strong> <span id="startTimeModal"></span></p>
+                    <p><strong>End Time:</strong> <span id="endTimeModal"></span></p>
+
+                    <h6>Defects:</h6>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Location</th>
+                                <th>Defect Name</th>
+                                <th>Defect Code</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalDefects"></tbody>
+                    </table>
+
+                    <button type="button" class="btn btn-success" onclick="downloadXML()">Download XML</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container">
+        <div id="generateToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+            <div class="d-flex">
+                <div class="toast-body">XML file generation started.</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+
+        <div id="errorToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+            <div class="d-flex">
+                <div class="toast-body">Please fill all the required fields!</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("date").value = new Date().toISOString().split('T')[0].replace(/-/g, "");
+
+        // Convert letters to uppercase
+        const inputs = document.querySelectorAll("input");
+        inputs.forEach(input => {
+            input.addEventListener("input", function () {
+                this.value = this.value.toUpperCase();
+            });
+        });
+
+        function addDefect() {
+            const defectList = document.getElementById("defectList");
+            const div = document.createElement("div");
+            div.classList.add("input-group", "mb-2");
+            div.innerHTML = ` 
+                <input type="text" class="form-control defect-location" placeholder="Location Name" required>
+                <input type="text" class="form-control" placeholder="Defect Name" required>
+                <input type="text" class="form-control" placeholder="Defect Code" required>
+                <input type="text" class="form-control" value="NG" readonly>
+                <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
+            `;
+            defectList.appendChild(div);
+        }
+
+        document.getElementById("barcode").addEventListener("input", function () {
+            this.value = this.value.replace(/^\[|\]$/g, "");
+            document.getElementById("startTime").value = new Date().toLocaleTimeString("en-GB");
+        });
+
+        function validateForm() {
+            let valid = true;
+
+            // Validate operator ID
+            const operatorId = document.getElementById("operatorId").value;
+            if (!/^\d{5}$/.test(operatorId)) {
+                document.getElementById("operatorError").style.display = "block";
+                valid = false;
+            } else {
+                document.getElementById("operatorError").style.display = "none";
+            }
+
+            // Validate panel side
+            const panelSide = document.querySelector('input[name="panelSide"]:checked');
+            if (!panelSide) {
+                document.getElementById("panelSideError").style.display = "block";
+                valid = false;
+            } else {
+                document.getElementById("panelSideError").style.display = "none";
+            }
+
+            // Validate barcode
+            const barcode = document.getElementById("barcode").value;
+            if (!barcode) {
+                document.getElementById("barcodeError").style.display = "block";
+                valid = false;
+            } else {
+                document.getElementById("barcodeError").style.display = "none";
+            }
+
+            return valid;
+        }
+
+        function submitForm() {
+            if (!validateForm()) {
+                const toast = new bootstrap.Toast(document.getElementById("errorToast"));
+                toast.show();
+                return;
+            }
+
+            // Set end time to current time
+            document.getElementById("endTime").value = new Date().toLocaleTimeString("en-GB");
+
+            // Show "XML file generation started" toast
+            const generateToast = new bootstrap.Toast(document.getElementById("generateToast"));
+            generateToast.show();
+
+            // Populate modal with the entered data
+            document.getElementById("operatorIdModal").textContent = document.getElementById("operatorId").value;
+            document.getElementById("panelSideModal").textContent = document.querySelector('input[name="panelSide"]:checked').value;
+            document.getElementById("barcodeModal").textContent = document.getElementById("barcode").value;
+            document.getElementById("dateModal").textContent = document.getElementById("date").value;
+            document.getElementById("startTimeModal").textContent = document.getElementById("startTime").value;
+            document.getElementById("endTimeModal").textContent = document.getElementById("endTime").value;
+
+            // Populate the defects section in the modal (table format)
+            const defectLocations = document.querySelectorAll(".defect-location");
+            const defectNames = document.querySelectorAll("input[type='text']:not(.defect-location)");
+
+            let defectsHTML = '';
+            for (let i = 0; i < defectLocations.length; i++) {
+                defectsHTML += `
+                    <tr>
+                        <td>${defectLocations[i].value}</td>
+                        <td>${defectNames[i * 2 + 1].value}</td>
+                        <td>${defectNames[i * 2 + 2].value}</td>
+                    </tr>
+                `;
+            }
+            document.getElementById("modalDefects").innerHTML = defectsHTML;
+
+            // Show modal
+            const dataModal = new bootstrap.Modal(document.getElementById("dataModal"));
+            dataModal.show();
+        }
+
+        function downloadXML() {
+            const operatorId = document.getElementById("operatorId").value;
+            const panelSide = document.querySelector('input[name="panelSide"]:checked').value;
+            const barcode = document.getElementById("barcode").value;
+            const date = document.getElementById("date").value;
+            const startTime = document.getElementById("startTime").value;
+            const endTime = document.getElementById("endTime").value;
+
+            let defects = '';
+            const defectLocations = document.querySelectorAll(".defect-location");
+            const defectNames = document.querySelectorAll("input[type='text']:not(.defect-location)");
+
+            for (let i = 0; i < defectLocations.length; i++) {
+                defects += `
+                    <defect>
+                        <location>${defectLocations[i].value}</location>
+                        <name>${defectNames[i * 2 + 1].value}</name>
+                        <code>${defectNames[i * 2 + 2].value}</code>
+                    </defect>
+                `;
+            }
+
+            const xmlContent = `
+                <data>
+                    <operatorId>${operatorId}</operatorId>
+                    <panelSide>${panelSide}</panelSide>
+                    <barcode>${barcode}</barcode>
+                    <date>${date}</date>
+                    <startTime>${startTime}</startTime>
+                    <endTime>${endTime}</endTime>
+                    ${defects}
+                </data>
+            `;
+
+            const blob = new Blob([xmlContent], { type: 'application/xml' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "AOI_Data.xml";
+            link.click();
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+</body>
+</html>
