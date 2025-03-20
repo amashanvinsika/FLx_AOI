@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AOI Data Entry</title>
+    <title>FLx defect data update - AOI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .navbar {
@@ -71,6 +71,7 @@
             <div id="defectList" class="mb-3"></div>
             <button type="button" class="btn btn-secondary" onclick="addDefect()">Add Defect</button>
             <button type="button" class="btn btn-primary" onclick="submitForm()">Submit</button>
+            <button type="reset" class="btn btn-warning" onclick="resetForm()">Reset</button>
         </form>
     </div>
 
@@ -125,15 +126,48 @@
     </div>
 
     <script>
-        document.getElementById("date").value = new Date().toISOString().split('T')[0].replace(/-/g, "");
+        // Defect codes and names
+        const defectData = {
+            "1": "Wrong component",
+            "2": "Wrong polarity",
+            "3": "Adhesive in termination area",
+            "4": "Component overhang",
+            "5": "Bilboarding",
+            "6": "Mounting upside down",
+            "7": "Tombstoning",
+            "8": "Coplanarity",
+            "9": "Insufficient end joint width",
+            "10": "Insufficient side joint length",
+            "11": "Defective fillet height",
+            "12": "Missing component",
+            "13": "Damaged component",
+            "14": "Wrong placement",
+            "15": "Pin holes / Blow holes",
+            "16": "Non wetting/Dewetting",
+            "17": "Solder balls / Solder fines",
+            "18": "Solder bridges / Splashes",
+            "19": "Disturbed solder",
+            "20": "Solder projections",
+            "21": "Test point open",
+            "35": "Delamination / Measling",
+            "36": "Burns / Path & PCB Damage",
+            "37": "Bow & Twist (Bent PCBs)"
+        };
 
-        // Convert letters to uppercase
-        const inputs = document.querySelectorAll("input");
-        inputs.forEach(input => {
-            input.addEventListener("input", function () {
-                this.value = this.value.toUpperCase();
-            });
+        document.getElementById("operatorId").addEventListener("input", function() {
+        if (this.value.length === 5) {  // Check if the operator ID is 5 digits
+        document.getElementById("date").value = new Date().toISOString().split('T')[0].replace(/-/g, "");
+        }
         });
+
+
+        // Convert letters to uppercase for location name and barcode ID
+        document.addEventListener("input", function (e) {
+        if (e.target.classList.contains("defect-location") || e.target.id === "barcode") {
+        e.target.value = e.target.value.toUpperCase();
+        }
+        });
+
 
         function addDefect() {
             const defectList = document.getElementById("defectList");
@@ -141,12 +175,39 @@
             div.classList.add("input-group", "mb-2");
             div.innerHTML = ` 
                 <input type="text" class="form-control defect-location" placeholder="Location Name" required>
-                <input type="text" class="form-control" placeholder="Defect Name" required>
-                <input type="text" class="form-control" placeholder="Defect Code" required>
+                <select class="form-control defect-code" onchange="updateDefectFields(this)">
+                    <option value="">Select Defect Code</option>
+                    ${Object.keys(defectData).map(code => `<option value="${code}">${code}</option>`).join("")}
+                </select>
+                <select class="form-control defect-name" onchange="updateDefectFields(this)">
+                    <option value="">Select Defect Name</option>
+                    ${Object.entries(defectData).map(([code, name]) => `<option value="${code}">${name}</option>`).join("")}
+                </select>
                 <input type="text" class="form-control" value="NG" readonly>
                 <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
             `;
             defectList.appendChild(div);
+        }
+
+        function updateDefectFields(selectElement) {
+            const parentDiv = selectElement.parentElement;
+            const defectCodeSelect = parentDiv.querySelector(".defect-code");
+            const defectNameSelect = parentDiv.querySelector(".defect-name");
+
+            if (selectElement.classList.contains("defect-code")) {
+                // If defect code is selected, update defect name
+                const selectedCode = selectElement.value;
+                defectNameSelect.value = selectedCode;
+            } else if (selectElement.classList.contains("defect-name")) {
+                // If defect name is selected, update defect code
+                const selectedNameCode = selectElement.value;
+                defectCodeSelect.value = selectedNameCode;
+            }
+        }
+
+        function resetForm() {
+            document.getElementById("dataEntryForm").reset();
+            document.getElementById("defectList").innerHTML = "";
         }
 
         document.getElementById("barcode").addEventListener("input", function () {
@@ -211,15 +272,16 @@
 
             // Populate the defects section in the modal (table format)
             const defectLocations = document.querySelectorAll(".defect-location");
-            const defectNames = document.querySelectorAll("input[type='text']:not(.defect-location)");
+            const defectCodes = document.querySelectorAll(".defect-code");
+            const defectNames = document.querySelectorAll(".defect-name");
 
             let defectsHTML = '';
             for (let i = 0; i < defectLocations.length; i++) {
                 defectsHTML += `
                     <tr>
                         <td>${defectLocations[i].value}</td>
-                        <td>${defectNames[i * 2 + 1].value}</td>
-                        <td>${defectNames[i * 2 + 2].value}</td>
+                        <td>${defectNames[i].options[defectNames[i].selectedIndex].text}</td>
+                        <td>${defectCodes[i].value}</td>
                     </tr>
                 `;
             }
@@ -240,34 +302,48 @@
 
             let defects = '';
             const defectLocations = document.querySelectorAll(".defect-location");
-            const defectNames = document.querySelectorAll("input[type='text']:not(.defect-location)");
+            const defectCodes = document.querySelectorAll(".defect-code");
+            const defectNames = document.querySelectorAll(".defect-name");
 
             for (let i = 0; i < defectLocations.length; i++) {
+                const location = defectLocations[i].value;
+                const code = defectCodes[i].value;
+                const name = defectNames[i].options[defectNames[i].selectedIndex].text;
+                
                 defects += `
-                    <defect>
-                        <location>${defectLocations[i].value}</location>
-                        <name>${defectNames[i * 2 + 1].value}</name>
-                        <code>${defectNames[i * 2 + 2].value}</code>
-                    </defect>
-                `;
+        <COMPONENT LOCATION_NAME="${location}" DEFECT_NAME="${name}" DEFECT_CODE="${code}" RESULT="NG" />\n`;
             }
 
-            const xmlContent = `
-                <data>
-                    <operatorId>${operatorId}</operatorId>
-                    <panelSide>${panelSide}</panelSide>
-                    <barcode>${barcode}</barcode>
-                    <date>${date}</date>
-                    <startTime>${startTime}</startTime>
-                    <endTime>${endTime}</endTime>
-                    ${defects}
-                </data>
-            `;
+            const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<INSPECTION_RESULT>
+    <!-- MACHINE INFO -->
+    <INFO>
+        <OPERATOR_ID>${operatorId}</OPERATOR_ID>
+    </INFO>
+
+    <!-- PANEL LEVEL DATA -->
+    <PANEL_INSP_RESULT>
+        <PANEL_SIDE>${panelSide}</PANEL_SIDE>
+        <BARCODE>${barcode}</BARCODE>
+        <DATE>${date}</DATE>
+        <START_TIME>${startTime}</START_TIME>
+        <END_TIME>${endTime}</END_TIME>
+    </PANEL_INSP_RESULT>
+
+    <!-- COMPONENT LEVEL DEFECT DATA -->
+    <COMPONENT_INSP_RESULT>
+${defects.trim()}
+    </COMPONENT_INSP_RESULT>
+</INSPECTION_RESULT>`;
+
+            // Generate file name
+            const now = new Date();
+            const fileName = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${now.getHours()}${now.getMinutes()}${now.getSeconds()}_${barcode}.xml`;
 
             const blob = new Blob([xmlContent], { type: 'application/xml' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = "AOI_Data.xml";
+            link.download = fileName;
             link.click();
         }
     </script>
