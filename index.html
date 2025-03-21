@@ -42,9 +42,9 @@
         <form id="dataEntryForm" class="row g-1 mx-auto" style="max-width: 900px;">
             <!-- Form content remains the same -->
             <div class="mb-3">
-                <label class="form-label">Operator ID (5 Digits)</label>
+                <label class="form-label">Operator ID (SAP Number)</label>
                 <input type="text" class="form-control" id="operatorId" pattern="\d{5}" maxlength="5" required>
-                <div class="text-danger" id="operatorError" style="display:none;">Enter your SAP number</div>
+                <div class="error-message" id="operatorError" style="display:none;">Enter your SAP number</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">Panel Side</label><br>
