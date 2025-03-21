@@ -342,7 +342,9 @@ ${defects.trim()}
 
     // Generate file name
     const now = new Date();
-    const fileName = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${now.getHours()}${now.getMinutes()}${now.getSeconds()}_${barcode}.xml`;
+    const fileName = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_` +
+                     `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}_` +
+                     `${barcode}.xml`;
 
     const blob = new Blob([xmlContent], { type: 'application/xml' });
     const link = document.createElement("a");
