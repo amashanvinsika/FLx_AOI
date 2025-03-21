@@ -293,28 +293,29 @@
         }
 
         function downloadXML() {
-            const operatorId = document.getElementById("operatorId").value;
-            const panelSide = document.querySelector('input[name="panelSide"]:checked').value;
-            const barcode = document.getElementById("barcode").value;
-            const date = document.getElementById("date").value;
-            const startTime = document.getElementById("startTime").value;
-            const endTime = document.getElementById("endTime").value;
+    const operatorId = document.getElementById("operatorId").value;
+    const panelSide = document.querySelector('input[name="panelSide"]:checked').value;
+    const barcodeInput = document.getElementById("barcode"); // Get barcode input field
+    const barcode = barcodeInput.value;
+    const date = document.getElementById("date").value;
+    const startTime = document.getElementById("startTime").value;
+    const endTime = document.getElementById("endTime").value;
 
-            let defects = '';
-            const defectLocations = document.querySelectorAll(".defect-location");
-            const defectCodes = document.querySelectorAll(".defect-code");
-            const defectNames = document.querySelectorAll(".defect-name");
+    let defects = '';
+    const defectLocations = document.querySelectorAll(".defect-location");
+    const defectCodes = document.querySelectorAll(".defect-code");
+    const defectNames = document.querySelectorAll(".defect-name");
 
-            for (let i = 0; i < defectLocations.length; i++) {
-                const location = defectLocations[i].value;
-                const code = defectCodes[i].value;
-                const name = defectNames[i].options[defectNames[i].selectedIndex].text;
-                
-                defects += `
+    for (let i = 0; i < defectLocations.length; i++) {
+        const location = defectLocations[i].value;
+        const code = defectCodes[i].value;
+        const name = defectNames[i].options[defectNames[i].selectedIndex].text;
+
+        defects += `
         <COMPONENT LOCATION_NAME="${location}" DEFECT_NAME="${name}" DEFECT_CODE="${code}" RESULT="NG" />\n`;
-            }
+    }
 
-            const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+    const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <INSPECTION_RESULT>
     <!-- MACHINE INFO -->
     <INFO>
@@ -339,16 +340,28 @@ ${defects.trim()}
     </COMPONENT_INSP_RESULT>
 </INSPECTION_RESULT>`;
 
-            // Generate file name
-            const now = new Date();
-            const fileName = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${now.getHours()}${now.getMinutes()}${now.getSeconds()}_${barcode}.xml`;
+    // Generate file name
+    const now = new Date();
+    const fileName = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${now.getHours()}${now.getMinutes()}${now.getSeconds()}_${barcode}.xml`;
 
-            const blob = new Blob([xmlContent], { type: 'application/xml' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = fileName;
-            link.click();
-        }
+    const blob = new Blob([xmlContent], { type: 'application/xml' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+
+    // ✅ Close the modal (for Bootstrap modal)
+    const modalElement = document.getElementById("dataModal"); // Change "myModal" to your actual modal ID
+    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+    if (modalInstance) {
+        modalInstance.hide();
+    }
+
+    // ✅ Automatically focus on the barcode input field
+    barcodeInput.value = "";  // Clear previous barcode
+    barcodeInput.focus();  // Set focus on the barcode input field
+}
+
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
