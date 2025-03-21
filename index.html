@@ -329,7 +329,10 @@
         <START_TIME>${startTime}</START_TIME>
         <END_TIME>${endTime}</END_TIME>
     </PANEL_INSP_RESULT>
-
+    <!-- BOARD or MODULE LEVEL DATA -->
+    <BOARD_INSP_RESULT>
+        <BOARD BARCODE="${barcode}" RESULT="NG" />
+    </BOARD_INSP_RESULT>
     <!-- COMPONENT LEVEL DEFECT DATA -->
     <COMPONENT_INSP_RESULT>
 ${defects.trim()}
